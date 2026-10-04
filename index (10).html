@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a3b4c">
+<title>Arrival Desk — a concept for NEMT dispatch (synthetic data)</title>
+<style>
+:root{
+ --bg:#e9eef1;--paper:#fbfcfd;--ink:#13222c;--muted:#5a6d79;--line:#d2dbe1;--line2:#bfcad2;
+ --brand:#0a5c75;--brandDark:#0a3b4c;--brandSoft:#d9ecf2;
+ --late:#c9283f;--lateBg:#fde9ec;--risk:#b56a00;--riskBg:#fff1d4;--ok:#1b7d52;--okBg:#dcf2e6;--info:#2a5cc2;--infoBg:#e2eafb;
+ --shadow:0 1px 2px rgba(19,34,44,.06),0 8px 24px rgba(19,34,44,.07);
+ --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+header.top{background:var(--brandDark);color:#fff;position:sticky;top:0;z-index:40}
+.topIn{max-width:1500px;margin:auto;padding:12px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.mark{display:flex;align-items:center;gap:11px;margin-right:auto}
+.mark svg{flex:none}
+.mark b{font-size:18px;letter-spacing:-.01em;display:block;line-height:1.1}
+.mark span{font-size:12px;color:#a9cdd8;display:block}
+.clock{display:flex;align-items:baseline;gap:8px;background:rgba(255,255,255,.1);border-radius:10px;padding:7px 13px}
+.clock small{font-size:11px;color:#a9cdd8}.clock b{font:700 20px/1 var(--mono);letter-spacing:.02em}
+.ctrl{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line2);background:var(--paper);color:var(--ink);border-radius:9px;padding:8px 13px;font-weight:650;font-size:13px;transition:background .15s,border-color .15s}
+.btn:hover{background:#fff;border-color:var(--brand)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}.btn.primary:hover{background:#0b6e8c}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn.warn{background:var(--late);border-color:var(--late);color:#fff}
+header.top .btn{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28);color:#fff}
+header.top .btn:hover{background:rgba(255,255,255,.2)}
+header.top .btn.primary{background:#fff;color:var(--brandDark);border-color:#fff}
+header.top .btn.primary:hover{background:#e9f4f8}
+.select,.input,.textarea{border:1px solid var(--line2);background:#fff;border-radius:9px;padding:8px 10px;outline:none;max-width:100%}
+.select:focus,.input:focus,.textarea:focus{border-color:var(--brand)}
+header.top .select{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28);color:#fff}
+header.top .select option{color:#13222c}
+.textarea{width:100%;min-height:104px;resize:vertical;line-height:1.5}
+.tabs{background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+.tabsIn{max-width:1500px;margin:auto;padding:0 24px;display:flex;gap:4px;overflow-x:auto}
+.tabs button{border:0;background:transparent;padding:13px 14px;font-weight:650;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
+.tabs button:hover{color:var(--ink)}.tabs button.on{color:var(--brandDark);border-bottom-color:var(--brand)}
+.tabs .badge{display:inline-block;min-width:20px;text-align:center;font-size:11px;font-weight:800;border-radius:10px;padding:1px 6px;margin-left:6px;background:var(--lateBg);color:var(--late)}
+.wrap{max-width:1500px;margin:auto;padding:22px 24px 64px}
+.tag{display:inline-block;font-size:11px;font-weight:750;border-radius:6px;padding:2px 7px;margin-right:7px}
+.tag.pub{background:var(--okBg);color:var(--ok)}.tag.hyp{background:var(--riskBg);color:var(--risk)}.tag.des{background:var(--brandSoft);color:var(--brand)}
+.intro{display:flex;gap:16px;align-items:center;justify-content:space-between;background:var(--brandSoft);border:1px solid #b5d6e0;border-radius:12px;padding:13px 16px;margin-bottom:16px;flex-wrap:wrap}
+.intro p{margin:0;max-width:900px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow)}
+.kpi .k{font-size:12px;color:var(--muted);font-weight:600}
+.kpi .v{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:5px 0 3px}
+.kpi .n{font-size:12px;color:var(--muted)}
+.kpi.bad .v{color:var(--late)}.kpi.good .v{color:var(--ok)}.kpi.watch .v{color:var(--risk)}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.card .hd{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.card .hd h2{margin:0;font-size:16px;letter-spacing:-.01em}.card .hd p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+.pad{padding:16px 18px}
+.note{font-size:13px;color:var(--muted);line-height:1.6}.note b{color:var(--ink)}
+.chip{display:inline-flex;align-items:center;font-size:12px;font-weight:700;border-radius:20px;padding:2px 9px;white-space:nowrap}
+.chip.red{background:var(--lateBg);color:var(--late)}.chip.amber{background:var(--riskBg);color:var(--risk)}.chip.green{background:var(--okBg);color:var(--ok)}.chip.blue{background:var(--infoBg);color:var(--info)}.chip.gray{background:#e6ecef;color:var(--muted)}
+/* day board */
+.boardScroll{overflow-x:auto}
+.board{min-width:880px;position:relative;padding:0 0 6px}
+.bRow{display:grid;grid-template-columns:230px 1fr;align-items:center;min-height:34px;border-bottom:1px solid #edf1f3;cursor:pointer}
+.bRow:hover{background:#f3f7f9}
+.bRow.head{cursor:default;min-height:30px;border-bottom:1px solid var(--line);background:var(--paper)}.bRow.head:hover{background:var(--paper)}
+.lab{padding:4px 14px;line-height:1.25;min-width:0}.lab b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lab span{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lab .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--late)}.lab .dot.amber{background:var(--risk)}
+.track{position:relative;height:34px}
+.hline{position:absolute;top:0;bottom:0;width:1px;background:#e3eaee}
+.tick{position:absolute;top:7px;font:11px var(--mono);color:var(--muted);transform:translateX(-50%)}
+.seg{position:absolute;top:7px;height:20px;border-radius:5px;font-size:11px;font-weight:650;line-height:20px;padding:0 7px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#fff;min-width:74px}
+.seg.waiting,.seg.lateTail{min-width:0}
+.seg.ok{background:var(--brand)}.seg.transit{background:var(--info)}.seg.done{background:#cfe3d9;color:#2c5b46}
+.seg.none{background:repeating-linear-gradient(135deg,#f6d487 0 6px,#fbe6b3 6px 12px);color:#6a4500}
+.seg.late{background:var(--late)}
+.seg.waiting{background:repeating-linear-gradient(135deg,#f1a1ac 0 6px,#f7c9d0 6px 12px);color:#7a1224}
+.seg.lateTail{background:repeating-linear-gradient(135deg,var(--late) 0 5px,#e66a7c 5px 10px);color:#fff}
+.seg.idle{background:transparent;border:1px dashed var(--line2);color:var(--muted)}
+.nowLine{position:absolute;top:0;bottom:0;width:2px;background:var(--late);z-index:3;pointer-events:none}
+.nowLine span{position:absolute;top:-1px;left:4px;background:var(--late);color:#fff;font:700 11px var(--mono);padding:1px 5px;border-radius:4px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding:11px 18px;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+/* case cards */
+.sectionTitle{display:flex;justify-content:space-between;align-items:baseline;margin:22px 2px 10px}
+.sectionTitle h2{margin:0;font-size:17px;letter-spacing:-.01em}.sectionTitle span{font-size:12.5px;color:var(--muted)}
+.cases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.case{background:var(--paper);border:1px solid var(--line);border-left:6px solid var(--risk);border-radius:12px;padding:15px 17px;box-shadow:var(--shadow);display:grid;gap:9px}
+.case.critical{border-left-color:var(--late)}.case.medium{border-left-color:#8aa0ad}.case.fixed{border-left-color:var(--ok)}
+.caseTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.who{font-size:16px;font-weight:800;letter-spacing:-.01em}
+.meta{font-size:12.5px;color:var(--muted);margin-top:1px}
+.when{font-size:12px;font-weight:750;border-radius:8px;padding:4px 9px;background:var(--riskBg);color:var(--risk);white-space:nowrap}
+.case.critical .when{background:var(--lateBg);color:var(--late)}.case.fixed .when{background:var(--okBg);color:var(--ok)}
+.what{font-size:14px}.what b{display:block;font-size:15px}
+.stake{font-size:12.5px;color:var(--muted);border-left:3px solid var(--line2);padding-left:10px}
+.rec{background:#f1f6f8;border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:8px}
+.rec .rl{font-size:12px;color:var(--muted);font-weight:650}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.foot{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.empty{text-align:center;padding:38px 18px;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+/* tables */
+.tableWrap{overflow:auto}
+table.t{width:100%;border-collapse:collapse;min-width:760px}
+.t th{padding:10px 14px;text-align:left;font-size:12px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap}
+.t td{padding:11px 14px;border-bottom:1px solid #edf1f3;vertical-align:top;font-size:13px}
+.t b{display:block}.t .sub{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+.fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:16px 18px}
+.fields label{display:grid;gap:5px;font-size:12px;color:var(--muted)}.fields .input{width:100%}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.sheet{padding:22px 24px;font-size:14px;line-height:1.65}
+.sheet h3{margin:0 0 4px;font-size:20px;letter-spacing:-.01em}.sheet .sub{color:var(--muted);margin-bottom:14px}
+.sheet ul{margin:6px 0 0;padding-left:20px}.sheet li{margin:5px 0}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.stats div{border:1px solid var(--line);border-radius:10px;padding:10px 12px}.stats b{display:block;font-size:24px;letter-spacing:-.02em}.stats span{font-size:12px;color:var(--muted)}
+/* drawer */
+.overlay{position:fixed;inset:0;background:rgba(10,30,40,.45);z-index:70;opacity:0;pointer-events:none;transition:opacity .2s}.overlay.show{opacity:1;pointer-events:auto}
+.drawer{position:fixed;right:0;top:0;width:min(620px,100vw);height:100vh;z-index:200;background:var(--paper);border-left:1px solid var(--line2);box-shadow:none;visibility:hidden;transform:translateX(100%);transition:transform .26s ease,visibility 0s .26s;overflow:auto}
+.drawer.open{transform:translateX(0);visibility:visible;box-shadow:-24px 0 60px rgba(10,30,40,.25);transition:transform .26s ease,visibility 0s}
+.dHead{position:sticky;top:0;z-index:5;padding:16px 18px;border-bottom:1px solid var(--line);background:var(--paper);display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.dHead h3{margin:0;font-size:19px;letter-spacing:-.01em}.dHead p{margin:3px 0 0;font-size:13px;color:var(--muted)}
+.sec{padding:15px 18px;border-bottom:1px solid var(--line)}.sec h4{margin:0 0 9px;font-size:13px;color:var(--brand)}
+.ob{display:grid;gap:7px}.ob div{display:flex;gap:9px;align-items:baseline;font-size:13px}
+.ob i{font-style:normal;width:16px;text-align:center;flex:none}.ob .ok i{color:var(--ok)}.ob .miss i{color:var(--late)}.ob .wait i{color:var(--muted)}
+.ob small{margin-left:auto;color:var(--muted);white-space:nowrap}.ob .miss small{color:var(--late)}
+.tl{display:grid;gap:7px;font-size:13px}.tl div{display:flex;gap:10px}.tl time{flex:none;width:56px;color:var(--muted);font:12px var(--mono);padding-top:2px}.tl .by{font-weight:700;color:var(--brand)}
+.box{border:1px solid var(--line);border-radius:11px;padding:12px;background:#f6f9fa;display:grid;gap:8px}
+.box label{font-size:12px;color:var(--muted);font-weight:650}
+.lock{border:1px solid #e8cf94;background:var(--riskBg);color:#6a4500;border-radius:10px;padding:9px 12px;font-size:12.5px}
+.summary{white-space:pre-wrap;font-size:12.5px;line-height:1.6;background:#f6f9fa;border:1px solid var(--line);border-radius:10px;padding:11px}
+.toast{position:fixed;right:20px;bottom:20px;z-index:300;opacity:0;transform:translateY(10px);pointer-events:none;transition:.2s;background:var(--brandDark);color:#fff;border-radius:10px;padding:11px 15px;font-size:13px;box-shadow:var(--shadow);max-width:min(440px,calc(100vw - 40px))}
+.toast.show{opacity:1;transform:translateY(0)}.toast.err{background:var(--late)}
+@media(max-width:1000px){.kpis,.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.cases,.grid2{grid-template-columns:minmax(0,1fr)}.fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.wrap{padding:16px 12px 48px}.topIn{padding:10px 12px}.tabsIn{padding:0 8px}.fields{grid-template-columns:minmax(0,1fr)}.kpi .v{font-size:28px}.bRow{grid-template-columns:150px 1fr}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{body *{visibility:hidden}.sheet,.sheet *{visibility:visible}.sheet{position:absolute;left:0;top:0;width:100%}}
+</style>
+</head>
+<body>
+<header class="top"><div class="topIn">
+ <div class="mark">
+  <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="9" fill="#fff"/><path d="M8 18.5h11" stroke="#0a3b4c" stroke-width="3" stroke-linecap="round"/><path d="M15 11.5l8 7-8 7" fill="none" stroke="#0a5c75" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="26" cy="18.5" r="2.4" fill="#c9283f"/></svg>
+  <div><b>Arrival Desk</b><span>A concept for NEMT dispatch · synthetic data</span></div>
+ </div>
+ <div class="clock" title="Simulated clock for the demo day"><small>Demo time</small><b id="clockTxt">05:00</b></div>
+ <div class="ctrl">
+  <button class="btn primary" id="btnNext">Next problem</button>
+  <button class="btn" id="btn30">+30 min</button>
+  <button class="btn" id="btn120">+2 hours</button>
+  <select class="select" id="role" aria-label="Viewing as"><option>Dispatcher</option><option>Ops manager</option><option>Facility coordinator</option></select>
+  <button class="btn" id="reset">Reset day</button>
+ </div>
+</div></header>
+<nav class="tabs"><div class="tabsIn" id="tabs">
+ <button data-nav="live" class="on">Live board <span class="badge" id="badge">0</span></button>
+ <button data-nav="facility">Facility view</button>
+ <button data-nav="rides">All rides</button>
+ <button data-nav="rules">Rules</button>
+ <button data-nav="audit">History</button>
+ <button data-nav="about">About this concept</button>
+</div></nav>
+<main class="wrap" id="view"></main>
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer" aria-hidden="true"></aside>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+/*ENGINE_START*/
+var DAY_START=300, DAY_END=1320;
+function hm(s){var p=s.split(':');return (+p[0])*60+(+p[1]);}
+function pad(n){return (n<10?'0':'')+n;}
+function fmt(t){t=Math.round(t);var d=Math.floor(t/1440);var m=((t%1440)+1440)%1440;var s=pad(Math.floor(m/60))+':'+pad(m%60);return d<0?'Yesterday '+s:d>0?'Tomorrow '+s:s;}
+var DEFAULT_T={acceptH:3,confirmH:2,enrouteMin:30,graceMin:15,tolMin:0,returnMin:30,slaCritical:10,slaHigh:20,slaMedium:45};
+var DRIVERS=[
+ {id:'D-101',name:'Marcus T.',veh:'sedan'},{id:'D-102',name:'Priya N.',veh:'wheelchair'},
+ {id:'D-103',name:'Luis G.',veh:'sedan'},{id:'D-104',name:'Grace W.',veh:'wheelchair'},
+ {id:'D-105',name:'Tom H.',veh:'stretcher'},{id:'D-106',name:'Aisha B.',veh:'sedan'},
+ {id:'D-107',name:'Ken R.',veh:'wheelchair'},{id:'D-108',name:'Sofia L.',veh:'sedan'}];
+var DRV={};DRIVERS.forEach(function(d){DRV[d.id]=d;});
+var VEHLABEL={sedan:'Sedan',wheelchair:'Wheelchair van',stretcher:'Stretcher van'};
+var RANK={ambulatory:0,sedan:0,wheelchair:1,stretcher:2};
+var FACILITIES=['Riverbend Dialysis Center','Cedar Oncology Clinic','St. Marlow Hospital','Harbor Family Clinic','Eastside Rehab & PT'];
+function E(t,k,x){var o={t:typeof t==='string'?hm(t):t,k:k};if(x)for(var p in x)o[p]=x[p];return o;}
+function out(id,rider,fac,type,mob,pickup,travel,missing,ev){var p=hm(pickup);return {id:id,rider:rider,fac:fac,type:type,mob:mob,leg:'out',pickup:p,travel:travel,appt:p+travel+15,missing:missing||[],ev:ev};}
+function ret(id,rider,fac,type,mob,travel,ev){return {id:id,rider:rider,fac:fac,type:type,mob:mob,leg:'ret',pickup:null,travel:travel,appt:null,missing:[],ev:ev};}
+var RIDES=[
+ out('R-1041','Ruth A.','Riverbend Dialysis Center','Dialysis','wheelchair','06:00',25,[],[E(-600,'accept',{d:'D-102'}),E('04:40','confirm'),E('05:20','enroute'),E('06:02','pickup'),E('06:30','dropoff')]),
+ out('R-1042','Samuel O.','Riverbend Dialysis Center','Dialysis','ambulatory','06:15',20,[],[E(-600,'accept',{d:'D-101'}),E('04:45','confirm')]),
+ out('R-1043','Margaret L.','Riverbend Dialysis Center','Dialysis','wheelchair','06:30',30,[],[E(-300,'accept',{d:'D-103'}),E('04:50','confirm'),E('05:50','enroute')]),
+ out('R-1054','Dolores T.','Cedar Oncology Clinic','Oncology','wheelchair','08:30',30,[],[E(-300,'accept',{d:'D-102'}),E('04:50','confirm'),E('07:50','enroute'),E('08:31','pickup'),E('09:02','dropoff')]),
+ out('R-1044','Joseph K.','Cedar Oncology Clinic','Oncology','ambulatory','08:00',35,[],[E(-480,'accept',{d:'D-106'}),E('07:15','enroute'),E('08:01','pickup'),E('08:36','dropoff')]),
+ out('R-1046','David P.','Harbor Family Clinic','Clinic visit','ambulatory','09:00',25,[],[E(-500,'accept',{d:'D-101'}),E('04:55','confirm'),E('07:10','decline',{d:'D-101'})]),
+ out('R-1045','Elena V.','St. Marlow Hospital','Discharge','stretcher','09:30',40,[],[E('04:30','confirm')]),
+ out('R-1048','Peter N.','Cedar Oncology Clinic','Oncology','wheelchair','10:00',30,[],[E(-400,'accept',{d:'D-104'}),E('04:55','confirm'),E('09:15','enroute'),E('09:30','eta',{v:hm('10:25')}),E('10:27','pickup'),E('10:58','dropoff')]),
+ out('R-1047','Aisha M.','Harbor Family Clinic','Clinic visit','wheelchair','10:30',20,['return plan'],[E(-300,'accept',{d:'D-107'}),E('04:55','confirm'),E('09:50','enroute'),E('10:31','pickup'),E('10:52','dropoff')]),
+ out('R-1049','Walter F.','Eastside Rehab & PT','Physical therapy','ambulatory','11:00',15,[],[E(-300,'accept',{d:'D-108'}),E('04:55','confirm'),E('10:20','enroute'),E('11:00','arrive'),E('11:08','notready')]),
+ out('R-1050','Linda S.','Riverbend Dialysis Center','Dialysis','ambulatory','12:30',20,[],[E(-300,'accept',{d:'D-103'}),E('04:55','confirm'),E('11:50','enroute'),E('12:31','pickup'),E('12:52','dropoff')]),
+ out('R-1051','Omar H.','St. Marlow Hospital','Discharge','wheelchair','13:00',30,[],[E(-300,'accept',{d:'D-107'}),E('04:55','confirm'),E('12:20','enroute')]),
+ out('R-1052','Grace B.','Eastside Rehab & PT','Physical therapy','ambulatory','14:00',20,[],[E(-300,'accept',{d:'D-106'}),E('04:55','confirm'),E('13:20','enroute'),E('14:01','pickup'),E('14:22','dropoff')]),
+ out('R-1053','Henry C.','Harbor Family Clinic','Clinic visit','ambulatory','15:00',25,[],[E(-200,'accept',{d:'D-101'}),E('04:55','confirm'),E('14:20','enroute'),E('15:01','pickup'),E('15:27','dropoff')]),
+ ret('R-1041R','Ruth A. (return)','Riverbend Dialysis Center','Dialysis','wheelchair',25,[E('10:15','ready'),E('10:40','accept',{d:'D-102'}),E('11:20','pickup'),E('11:50','dropoff')]),
+ ret('R-1042R','Samuel O. (return)','Riverbend Dialysis Center','Dialysis','ambulatory',20,[E('10:20','ready'),E('10:25','accept',{d:'D-101'}),E('10:38','pickup'),E('10:58','dropoff')]),
+ ret('R-1044R','Joseph K. (return)','Cedar Oncology Clinic','Oncology','ambulatory',35,[E('12:30','ready')]),
+ ret('R-1049R','Walter F. (return)','Eastside Rehab & PT','Physical therapy','ambulatory',15,[E('12:15','ready'),E('12:20','accept',{d:'D-108'}),E('12:30','pickup'),E('12:48','dropoff')]),
+ ret('R-1048R','Peter N. (return)','Cedar Oncology Clinic','Oncology','wheelchair',30,[E('13:30','ready')]),
+ ret('R-1050R','Linda S. (return)','Riverbend Dialysis Center','Dialysis','ambulatory',20,[]),
+ ret('R-1054R','Dolores T. (return)','Cedar Oncology Clinic','Oncology','wheelchair',30,[])
+];
+var RIDE={};RIDES.forEach(function(r){RIDE[r.id]=r;});
+var RULES={
+ R1:{name:'Return plan missing',when:'A required booking detail, such as the return plan, is missing before pickup.',owner:'Dispatcher',esc:'Ops manager if not acknowledged within the SLA',fac:'No'},
+ R2:{name:'Nobody has this ride',when:'No driver holds the ride at the acceptance cutoff, or the driver declined after the cutoff.',owner:'Dispatcher',esc:'Ops manager if not acknowledged within the SLA',fac:'Yes'},
+ R3:{name:'Wrong vehicle for this rider',when:'The assigned vehicle cannot carry the rider (for example a sedan assigned to a wheelchair rider).',owner:'Dispatcher',esc:'Ops manager if not acknowledged within the SLA',fac:'Yes'},
+ R4:{name:'Rider has not confirmed',when:'No rider or caregiver confirmation by the confirmation cutoff.',owner:'Dispatcher',esc:'Ops manager after two failed contact attempts',fac:'No'},
+ R5:{name:'Pickup late or driver silent',when:'Driver assigned but no en-route status near pickup time, or pickup still not done after the grace period.',owner:'Dispatcher',esc:'Ops manager if not acknowledged, or after two failed driver calls',fac:'Yes'},
+ R6:{name:'Running late for the appointment',when:'The latest ETA means arrival at the facility after the appointment time (plus tolerance).',owner:'Dispatcher',esc:'Ops manager if not acknowledged within the SLA',fac:'Yes'},
+ R7:{name:'Rider not ready at the door',when:'Driver reports the rider is not ready at the door.',owner:'Dispatcher',esc:'Ops manager after two failed contact attempts',fac:'Yes'},
+ R8:{name:'Patient waiting for the ride home',when:'The facility sent patient-ready and no pickup happened within the return wait limit.',owner:'Dispatcher',esc:'Ops manager if not acknowledged within the SLA',fac:'Yes'}
+};
+var SEVRANK={medium:1,high:2,critical:3};
+var OUTCOMES=['Completed on time','Completed late','Recovered','Rider no-show','Cancelled','Missed ride'];
+var NEEDS_FAC=['Completed late','Rider no-show','Missed ride'];
+var NEEDS_CLEARED=['Completed on time','Completed late','Recovered'];
+var REASONS=['Driver declined or unavailable','Driver late','No suitable vehicle available','Traffic or road delay','Rider not ready or unreachable','Booking details incomplete','Facility delay','Other'];
+
+function freshState(){return {clock:DAY_START,human:{},cut:{},cases:{},audit:[],T:JSON.parse(JSON.stringify(DEFAULT_T)),tour:{}};}
+function log(S,t,actor,c,text,rideId){S.audit.push({t:t,actor:actor,rideId:c?c.rideId:rideId,caseId:c?c.id:null,text:text,n:S.audit.length});if(S.audit.length>600)S.audit.shift();}
+
+function derive(ride,now,S){
+ var T=S.T,cut=S.cut[ride.id];
+ var seed=(cut==null)?ride.ev:ride.ev.filter(function(e){return e.t<=cut;});
+ var evs=seed.concat(S.human[ride.id]||[]).map(function(e,i){var o=Object.assign({},e);o._i=i;return o;}).sort(function(a,b){return a.t-b.t||a._i-b._i;});
+ var st={driver:null,driverAt:null,confirmed:false,enroute:null,etaPickup:null,breachSince:null,arrived:null,pickup:null,dropoff:null,notready:null,riderReady:null,ready:null,fieldsDone:false,lastDecline:null,fails:[],rfails:0,dfails:0,fnotify:[],events:[]};
+ evs.forEach(function(e){
+  if(e.t>now)return;
+  st.events.push(e);
+  switch(e.k){
+   case 'accept':st.driver=e.d;st.driverAt=e.t;st.enroute=null;st.etaPickup=null;st.breachSince=null;break;
+   case 'decline':st.driver=null;st.lastDecline=e.t;st.enroute=null;st.etaPickup=null;st.breachSince=null;break;
+   case 'confirm':st.confirmed=true;break;
+   case 'enroute':st.enroute=e.t;break;
+   case 'eta':st.etaPickup=e.v;if(ride.appt!=null){var b=(e.v+ride.travel)>(ride.appt+T.tolMin);if(b){if(st.breachSince===null)st.breachSince=e.t;}else st.breachSince=null;}break;
+   case 'arrive':st.arrived=e.t;break;
+   case 'pickup':st.pickup=e.t;break;
+   case 'dropoff':st.dropoff=e.t;break;
+   case 'notready':st.notready=e.t;st.riderReady=null;break;
+   case 'rider_ready':st.riderReady=e.t;break;
+   case 'ready':st.ready=e.t;break;
+   case 'fields':st.fieldsDone=true;break;
+   case 'call':if(e.o==='reached')st.confirmed=true;else{st.rfails++;st.fails.push(e.t);}break;
+   case 'dcall':if(e.o!=='ok'){st.dfails++;st.fails.push(e.t);}break;
+   case 'fnotify':st.fnotify.push(e);break;
+  }
+ });
+ st.fails.sort(function(a,b){return a-b;});
+ st.failAt=st.fails.length>=2?st.fails[1]:null;
+ return st;
+}
+
+function triggers(ride,st,now,T){
+ var res=[],isOut=ride.leg==='out',mob=RANK[ride.mob],noPick=st.pickup==null;
+ if(isOut&&ride.missing.length&&!st.fieldsDone&&noPick)
+  res.push({rule:'R1',since:-1000,detail:'Missing booking detail: '+ride.missing.join(', ')+'.',ev:[{ok:false,l:'Missing: '+ride.missing.join(', ')}]});
+ if(isOut&&st.driver==null&&noPick){
+  var cut=ride.pickup-T.acceptH*60;
+  if(now>=cut){
+   var since=Math.max(cut,st.lastDecline==null?-Infinity:st.lastDecline);
+   res.push({rule:'R2',since:since,detail:st.lastDecline!=null?'A driver declined at '+fmt(st.lastDecline)+' and nobody holds the ride.':'No driver accepted by the '+fmt(cut)+' cutoff.',ev:[{ok:false,l:'Driver accepted before '+fmt(cut)},{ok:st.lastDecline==null,l:st.lastDecline!=null?'Driver declined at '+fmt(st.lastDecline):'No decline recorded'}]});
+  }
+ }
+ if(isOut&&st.driver&&noPick&&RANK[DRV[st.driver].veh]<mob)
+  res.push({rule:'R3',since:st.driverAt,detail:DRV[st.driver].name+' has a '+VEHLABEL[DRV[st.driver].veh].toLowerCase()+' but the rider needs '+(ride.mob==='stretcher'?'a stretcher van':'a wheelchair van')+'.',ev:[{ok:false,l:'Vehicle fits mobility need ('+ride.mob+')'}]});
+ if(isOut&&!st.confirmed&&noPick){
+  var cc=ride.pickup-T.confirmH*60;
+  if(now>=cc)res.push({rule:'R4',since:cc,detail:'No rider or caregiver confirmation by '+fmt(cc)+(st.rfails?' ('+st.rfails+' failed contact attempt'+(st.rfails>1?'s':'')+').':'.'),ev:[{ok:false,l:'Confirmation received'},{ok:st.rfails===0,l:st.rfails+' failed contact attempt(s)'}]});
+ }
+ var overdue=isOut&&st.driver&&noPick&&st.notready==null&&now>=ride.pickup+T.graceMin;
+ var notEn=isOut&&st.driver&&noPick&&st.notready==null&&!st.enroute&&now>=ride.pickup-T.enrouteMin&&now>=st.driverAt;
+ if(overdue||notEn){
+  var s5=notEn?Math.max(ride.pickup-T.enrouteMin,st.driverAt):ride.pickup+T.graceMin;
+  res.push({rule:'R5',since:s5,overdue:!!overdue,detail:overdue?'Pickup was due at '+fmt(ride.pickup)+' and has not happened ('+Math.round(now-ride.pickup)+' min late).':'No en-route status from '+DRV[st.driver].name+' with pickup due at '+fmt(ride.pickup)+'.',ev:[{ok:!!st.enroute,l:'Driver en route'+(st.enroute?' at '+fmt(st.enroute):'')},{ok:false,l:'Rider picked up by '+fmt(ride.pickup+T.graceMin)}]});
+ }
+ if(isOut&&noPick&&st.breachSince!==null)
+  res.push({rule:'R6',since:st.breachSince,detail:'ETA to pickup '+fmt(st.etaPickup)+' means arrival about '+fmt(st.etaPickup+ride.travel)+', after the '+fmt(ride.appt)+' appointment.',ev:[{ok:false,l:'Projected arrival '+fmt(st.etaPickup+ride.travel)+' before '+fmt(ride.appt+T.tolMin)}]});
+ if(isOut&&st.notready!=null&&st.riderReady==null&&noPick)
+  res.push({rule:'R7',since:st.notready,detail:'Driver reported the rider was not ready at '+fmt(st.notready)+'.',ev:[{ok:false,l:'Rider ready at the door'},{ok:st.rfails===0,l:st.rfails+' failed contact attempt(s)'}]});
+ if(ride.leg==='ret'&&st.ready!=null&&noPick&&now>=st.ready+T.returnMin)
+  res.push({rule:'R8',since:st.ready+T.returnMin,detail:'Facility sent patient-ready at '+fmt(st.ready)+' and no pickup has happened ('+Math.round(now-st.ready)+' min waiting).',ev:[{ok:!!st.driver,l:'Driver assigned'},{ok:false,l:'Picked up within '+T.returnMin+' min of patient-ready'}]});
+ return res;
+}
+function severityOf(rule,ride,st,now,t){
+ if(rule==='R2')return now>=ride.pickup?'critical':'high';
+ if(rule==='R3'||rule==='R6')return 'high';
+ if(rule==='R5')return t.overdue?'critical':'high';
+ if(rule==='R8')return (ride.type==='Dialysis'||ride.type==='Discharge')?'high':'medium';
+ return 'medium';
+}
+function slaMin(sev,T){return sev==='critical'?T.slaCritical:sev==='high'?T.slaHigh:T.slaMedium;}
+function evaluate(S,now){
+ var T=S.T,seen={};
+ RIDES.forEach(function(ride){
+  var st=derive(ride,now,S),tr=triggers(ride,st,now,T);
+  tr.forEach(function(t){
+   var key=ride.id+':'+t.rule;seen[key]=1;
+   var c=S.cases[key],sev=severityOf(t.rule,ride,st,now,t);
+   if(!c){
+    c={key:key,id:'EX-'+ride.id.replace('R-','')+'-'+t.rule,rideId:ride.id,rule:t.rule,createdAt:Math.max(t.since,DAY_START),severity:sev,ack:null,ackBy:null,owner:'Dispatcher',escalated:false,escalatedAt:null,escReason:null,resolved:null,cleared:false,clearedAt:null,facNotified:null};
+    S.cases[key]=c;
+    log(S,c.createdAt,'System rule',c,'Opened: '+RULES[t.rule].name+'. '+t.detail);
+   }else if(!c.resolved){
+    if(SEVRANK[sev]>SEVRANK[c.severity]){log(S,Math.max(t.since,c.createdAt),'System rule',c,'Severity raised to '+sev+'. '+t.detail);c.severity=sev;}
+    if(c.cleared){c.cleared=false;c.clearedAt=null;log(S,now,'System rule',c,'Condition active again.');}
+   }
+   c.detail=t.detail;c.evid=t.ev;c.since=t.since;
+  });
+ });
+ Object.keys(S.cases).forEach(function(k){
+  var c=S.cases[k];
+  if(!c.resolved&&!seen[k]&&!c.cleared){c.cleared=true;c.clearedAt=now;log(S,now,'System rule',c,'The condition cleared. The case still needs an outcome before it closes.');}
+ });
+ Object.keys(S.cases).forEach(function(k){
+  var c=S.cases[k];if(c.resolved||c.escalated||c.cleared)return;
+  var st=derive(RIDE[c.rideId],now,S),dl=c.createdAt+slaMin(c.severity,T);
+  if(!c.ack&&now>dl){c.escalated=true;c.escalatedAt=dl;c.owner='Ops manager';c.escReason='No acknowledgement within '+slaMin(c.severity,T)+' min';log(S,dl,'System rule',c,'Escalated to Ops manager: '+c.escReason+'.');}
+  else if(st.failAt!==null&&st.failAt<=now&&(c.rule==='R4'||c.rule==='R5'||c.rule==='R7')){c.escalated=true;c.escalatedAt=st.failAt;c.owner='Ops manager';c.escReason='Two failed contact attempts';log(S,st.failAt,'System rule',c,'Escalated to Ops manager: two failed contact attempts.');}
+ });
+}
+function advance(S,to,stopOnNew){
+ var n0=Object.keys(S.cases).length;
+ var t=S.clock;
+ while(t<to){
+  t=Math.min(t+5,to);S.clock=t;evaluate(S,t);
+  if(stopOnNew&&Object.keys(S.cases).length>n0)return true;
+ }
+ return false;
+}
+function priority(c,ride,st,now){
+ var s={critical:60,high:40,medium:20}[c.severity];
+ s+={Discharge:15,Dialysis:12,Oncology:12}[ride.type]||5;
+ if(ride.mob!=='ambulatory')s+=8;
+ if(ride.leg==='out'){var d=ride.appt-now;if(d<=0)s+=20;else if(d<=60)s+=15;else if(d<=120)s+=8;}
+ else if(st.ready!=null&&now-st.ready>60)s+=15;
+ if(c.escalated)s+=10;
+ if(c.cleared)s-=25;
+ return Math.max(1,Math.min(99,Math.round(s)));
+}
+function windowOf(r,st,now){
+ var s,e;
+ if(r.leg==='out'){s=st.pickup!=null?st.pickup:((now>r.pickup-15)?now:r.pickup-15);}
+ else{s=st.pickup!=null?st.pickup:(st.driverAt!=null?Math.max(st.driverAt,now):now);}
+ e=s+r.travel+30;return [s,e];
+}
+function driverBusy(S,now,ride,id){
+ var tw=ride.leg==='out'?[(now>ride.pickup-15)?now:ride.pickup-15,((now>ride.pickup-15)?now:ride.pickup-15)+ride.travel+30]:[now,now+ride.travel+30];
+ for(var i=0;i<RIDES.length;i++){
+  var r=RIDES[i];if(r.id===ride.id)continue;
+  var st=derive(r,now,S);if(st.driver!==id)continue;if(st.dropoff!=null&&st.dropoff<=now)continue;
+  var w=windowOf(r,st,now);if(tw[0]<w[1]&&w[0]<tw[1])return r.id;
+ }
+ return null;
+}
+function assignEvents(ride,drv,now,T){
+ var ev=[E(now,'accept',{d:drv,human:1})];
+ if(ride.leg==='out'){
+  if(now<ride.pickup-30){ev.push(E(Math.max(now+1,ride.pickup-(T.enrouteMin+5)),'enroute'),E(now,'eta',{v:ride.pickup}),E(ride.pickup+1,'pickup'),E(ride.pickup+1+ride.travel,'dropoff'));}
+  else{ev.push(E(now+3,'enroute'),E(now,'eta',{v:now+18}),E(now+18,'pickup'),E(now+18+ride.travel,'dropoff'));}
+ }else{ev.push(E(now+3,'enroute'),E(now+15,'pickup'),E(now+15+ride.travel,'dropoff'));}
+ return ev;
+}
+function addHuman(S,rideId,evs,cutNow){
+ S.human[rideId]=(S.human[rideId]||[]).concat(evs);
+ if(cutNow!=null)S.cut[rideId]=cutNow;
+}
+function rideStatus(ride,st,openCase){
+ if(st.dropoff!=null)return {k:'Completed',c:'green'};
+ if(st.pickup!=null)return {k:'In transit',c:'blue'};
+ if(openCase)return {k:'At risk',c:'red'};
+ if(ride.leg==='ret'){if(st.ready==null)return {k:'Awaiting patient-ready',c:'gray'};return {k:'Waiting for pickup',c:'amber'};}
+ if(!st.driver)return {k:'Unassigned',c:'amber'};
+ return {k:'On track',c:'green'};
+}
+function obligations(ride,st,T){
+ var L=[];
+ if(ride.leg==='out'){
+  L.push({l:'Booking details complete',ok:!ride.missing.length||st.fieldsDone});
+  L.push({l:'Driver accepted',due:ride.pickup-T.acceptH*60,ok:!!st.driver});
+  if(st.driver)L.push({l:'Vehicle fits mobility need',ok:RANK[DRV[st.driver].veh]>=RANK[ride.mob]});
+  L.push({l:'Rider confirmed',due:ride.pickup-T.confirmH*60,ok:st.confirmed});
+  L.push({l:'Driver en route',due:ride.pickup-T.enrouteMin,ok:!!st.enroute,at:st.enroute});
+  L.push({l:'Rider picked up',due:ride.pickup+T.graceMin,ok:st.pickup!=null,at:st.pickup});
+  L.push({l:'Arrived before appointment',due:ride.appt,ok:st.dropoff!=null,at:st.dropoff});
+ }else{
+  L.push({l:'Facility sent patient-ready',ok:st.ready!=null,at:st.ready});
+  L.push({l:'Driver assigned',due:st.ready!=null?st.ready+T.returnMin:null,ok:!!st.driver});
+  L.push({l:'Rider picked up',due:st.ready!=null?st.ready+T.returnMin:null,ok:st.pickup!=null,at:st.pickup});
+  L.push({l:'Dropped off at home',ok:st.dropoff!=null,at:st.dropoff});
+ }
+ return L;
+}
+
+var STAKE={Dialysis:'Chair times are fixed and the visits repeat. A late or missed arrival can cost the patient a session.',Discharge:'The patient is cleared to leave and the hospital is holding the bed until the ride arrives.',Oncology:'This is a booked treatment slot. A late arrival may mean rescheduling.','Clinic visit':'A booked appointment slot. A no-show wastes the visit and the ride.','Physical therapy':'A booked therapy slot. A no-show wastes the session and the ride.'};
+function bestDriver(S,now,ride){
+ var cur=derive(ride,now,S).driver;
+ var c=DRIVERS.filter(function(d){return RANK[d.veh]>=RANK[ride.mob]&&d.id!==cur&&!driverBusy(S,now,ride,d.id);});
+ c.sort(function(a,b){return RANK[a.veh]-RANK[b.veh];});
+ return c[0]||null;
+}
+function recommend(S,c,ride,st,now){
+ var d,dn=st.driver?DRV[st.driver].name:'the driver';
+ switch(c.rule){
+  case 'R2':case 'R3':case 'R8':
+   d=bestDriver(S,now,ride);
+   return d?{kind:'assign',d:d,btn:'Send '+d.name,label:d.name+' has a '+VEHLABEL[d.veh].toLowerCase()+' and is free in this window. It is the smallest vehicle that fits the rider, so scarcer vans stay available.'}:{kind:'none',label:'No suitable driver is free in this window. Escalate, and ask the facility to hold or move the slot.'};
+  case 'R5':
+   if(c.severity==='critical'){d=bestDriver(S,now,ride);return d?{kind:'assign',d:d,btn:'Send '+d.name+' as backup',label:'The pickup is overdue. '+d.name+' ('+VEHLABEL[d.veh].toLowerCase()+') is free and can take over.'}:{kind:'none',label:'The pickup is overdue and no backup driver is free. Escalate, and ask the facility to hold the slot.'};}
+   return {kind:'callDriver',label:'Call '+dn+' now and get a real status before the pickup time.'};
+  case 'R6':return {kind:'callDriver',label:'Call '+dn+' for a real ETA, then decide whether to send a backup.'};
+  case 'R4':return {kind:'callRider',label:'Call the rider or caregiver and confirm today\'s pickup.'};
+  case 'R7':return {kind:'callRider',label:'Call the rider and tell them the driver is at the door.'};
+  case 'R1':return {kind:'fields',label:'Call the booker and confirm the return plan.'};
+ }
+ return {kind:'none',label:''};
+}
+function suggestOutcome(S,c){
+ var acted=S.audit.some(function(a){return a.caseId===c.id&&a.actor!=='System rule'&&/^(Sent|Driver confirmed|Reached|Confirmed)/.test(a.text);});
+ return acted?'Recovered':'Completed on time';
+}
+function suggestReason(c){
+ return {R1:'Booking details incomplete',R2:'Driver declined or unavailable',R3:'No suitable vehicle available',R4:'Rider not ready or unreachable',R5:'Driver late',R6:'Traffic or road delay',R7:'Rider not ready or unreachable',R8:'Driver declined or unavailable'}[c.rule]||'Other';
+}
+function firstActionMin(S,c){
+ var t=null;S.audit.forEach(function(a){if(a.caseId===c.id&&a.actor!=='System rule'&&(t===null||a.t<t))t=a.t;});
+ return t===null?null:Math.max(0,t-c.createdAt);
+}
+/*ENGINE_END*/
+
+/* ================= UI ================= */
+var KEY='arrival_desk_v1';
+function load(){try{var s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.cases&&s.T)return s;}catch(e){}return null;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+var S=load();
+if(!S){S=freshState();evaluate(S,DAY_START);}
+var ui={view:'live',caseKey:null,rideKey:null,problemsOnly:false,fac:FACILITIES[0],role:'Dispatcher',draft:'',draftFor:null};
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function toast(msg,err){var t=$('toast');t.textContent=msg;t.className='toast show'+(err?' err':'');clearTimeout(toast._t);toast._t=setTimeout(function(){t.className='toast';},4200);}
+function dur(m){m=Math.round(m);if(m<60)return m+' min';var h=Math.floor(m/60),r=m%60;return h+'h'+(r?' '+r+'m':'');}
+function allCases(){return Object.keys(S.cases).map(function(k){return S.cases[k];});}
+function stOf(r){return derive(r,S.clock,S);}
+function liveCases(){return allCases().filter(function(c){return !c.resolved&&!c.cleared;});}
+function clearedCases(){return allCases().filter(function(c){return !c.resolved&&c.cleared;});}
+function caseOfRide(id){return liveCases().filter(function(c){return c.rideId===id;})[0]||null;}
+function canAct(c){return ui.role==='Ops manager'||(ui.role==='Dispatcher'&&c.owner==='Dispatcher');}
+function sevChip(s){return '<span class="chip '+(s==='critical'?'red':s==='high'?'amber':'gray')+'">'+(s==='critical'?'Critical':s==='high'?'High':'Medium')+'</span>';}
+function ownerLine(c){
+ if(c.resolved)return 'Closed '+fmt(c.resolved.t)+' · '+esc(c.resolved.outcome);
+ if(c.escalated)return 'Escalated to Ops manager at '+fmt(c.escalatedAt)+' ('+esc(c.escReason)+')';
+ if(c.ack)return esc(c.owner)+' has it since '+fmt(c.ack);
+ if(c.cleared)return 'Fixed. Needs closing';
+ var left=Math.round(c.createdAt+slaMin(c.severity,S.T)-S.clock);
+ return 'With '+esc(c.owner)+' · escalates to the Ops manager in '+Math.max(0,left)+' min';
+}
+
+/* ---- outcome numbers ---- */
+function median(a){if(!a.length)return null;a=a.slice().sort(function(x,y){return x-y;});var m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+function outcomes(){
+ var live=liveCases(),riskRides={},facs={},soonest=null;
+ live.forEach(function(c){var r=RIDE[c.rideId];if(r.leg!=='out')return;var st=stOf(r);if(st.pickup!=null)return;riskRides[r.id]=1;facs[r.fac]=1;var d=r.appt-S.clock;if(soonest===null||d<soonest)soonest=d;});
+ var fixed=allCases().filter(function(c){return c.cleared||(c.resolved&&['Recovered','Completed on time','Completed late'].indexOf(c.resolved.outcome)>-1);}).length;
+ var waits=[];allCases().forEach(function(c){var m=firstActionMin(S,c);if(m!=null)waits.push(m);});
+ var oldest=null;live.forEach(function(c){if(!c.ack){var w=S.clock-c.createdAt;if(oldest===null||w>oldest)oldest=w;}});
+ return {atRisk:Object.keys(riskRides).length,facs:Object.keys(facs).length,soonest:soonest,fixed:fixed,total:allCases().length,medianFirst:median(waits),oldestWaiting:oldest};
+}
+function kpisHTML(){
+ var o=outcomes();
+ var t1=o.atRisk?'bad':'good',n1=o.atRisk?'across '+o.facs+' facilit'+(o.facs===1?'y':'ies'):'Every outbound ride is on track';
+ var t2=o.soonest===null?'good':(o.soonest<=0?'bad':o.soonest<=60?'watch':''),v2=o.soonest===null?'None':(o.soonest<=0?'Late now':dur(o.soonest)),n2=o.soonest===null?'No appointment under threat':'until the soonest appointment at risk';
+ var v4=o.medianFirst==null?'—':dur(o.medianFirst),n4=o.oldestWaiting!=null&&o.oldestWaiting>0?'Oldest unclaimed problem waiting '+dur(o.oldestWaiting):'from problem detected to first action';
+ return '<div class="kpi '+t1+'"><div class="k">Riders who may miss their appointment</div><div class="v num">'+o.atRisk+'</div><div class="n">'+n1+'</div></div>'+
+ '<div class="kpi '+t2+'"><div class="k">Soonest appointment at risk</div><div class="v num">'+v2+'</div><div class="n">'+n2+'</div></div>'+
+ '<div class="kpi good"><div class="k">Problems fixed today</div><div class="v num">'+o.fixed+'</div><div class="n">of '+o.total+' detected so far</div></div>'+
+ '<div class="kpi"><div class="k">Typical time to first action</div><div class="v num">'+v4+'</div><div class="n">'+n4+'</div></div>';
+}
+
+/* ---- day board ---- */
+var B_START=270,B_END=1050;
+function pct(t){return Math.max(0,Math.min(100,(t-B_START)/(B_END-B_START)*100));}
+function sortKey(r){if(r.leg==='out')return r.pickup;var e=r.ev.filter(function(x){return x.k==='ready';})[0];return e?e.t:1000;}
+function shortFac(f){return f.replace(' Dialysis Center','').replace(' Oncology Clinic','').replace(' Family Clinic','').replace(' Rehab & PT','').replace(' Hospital','');}
+function seg(cls,a,b,txt){var l=pct(a),w=Math.max(1.2,pct(b)-pct(a));return '<div class="seg '+cls+'" style="left:'+l+'%;width:'+w+'%" title="'+esc(txt)+'">'+esc(txt)+'</div>';}
+function rowSegments(r,st,c){
+ var s='',nm=st.driver?DRV[st.driver].name.split(' ')[0]:'';
+ if(r.leg==='out'){
+  var cls=st.dropoff!=null?'done':st.pickup!=null?'transit':c?'late':!st.driver?'none':'ok';
+  var end=r.appt;
+  s+=seg(cls,r.pickup,end,st.dropoff!=null?'Arrived '+fmt(st.dropoff):st.pickup!=null?nm+' · en route':!st.driver?'No driver':nm);
+  if(st.pickup==null&&S.clock>r.pickup&&c)s+=seg('waiting',r.pickup,Math.min(S.clock,B_END),'Rider waiting');
+  if(st.etaPickup&&st.etaPickup+r.travel>r.appt&&st.pickup==null)s+=seg('lateTail',r.appt,st.etaPickup+r.travel,'Arrives '+fmt(st.etaPickup+r.travel));
+ }else{
+  if(st.ready==null){s+='<div class="seg idle" style="left:2%;width:50%">Waiting for the facility to send patient-ready</div>';}
+  else{
+   var wEnd=st.pickup!=null?st.pickup:S.clock;
+   s+=seg(c?'waiting':'none',st.ready,Math.max(wEnd,st.ready+8),st.pickup!=null?'Waited '+dur(st.pickup-st.ready):'Waiting '+dur(S.clock-st.ready));
+   if(st.pickup!=null)s+=seg(st.dropoff!=null?'done':'transit',st.pickup,st.dropoff!=null?st.dropoff:st.pickup+r.travel,st.dropoff!=null?'Home '+fmt(st.dropoff):'Going home · '+nm);
+  }
+ }
+ return s;
+}
+function boardHTML(){
+ var rides=RIDES.slice().sort(function(a,b){return sortKey(a)-sortKey(b);});
+ var pendingRet=0;
+ var shown=rides.filter(function(r){if(r.leg==='ret'&&stOf(r).ready==null){pendingRet++;return false;}return !ui.problemsOnly||caseOfRide(r.id);});
+ var ticks='';for(var h=5;h<=17;h++){if(Math.abs(h*60-S.clock)<25)continue;ticks+='<span class="tick" style="left:'+pct(h*60)+'%">'+pad(h)+'</span>';}
+ var rows=shown.map(function(r){
+  var st=stOf(r),c=caseOfRide(r.id);
+  var sub=r.type+' · '+shortFac(r.fac)+(r.leg==='ret'?' · return':'');
+  return '<div class="bRow" tabindex="0" data-ride="'+esc(r.id)+'"><div class="lab"><b>'+(c?'<i class="dot'+(c.severity==='medium'?' amber':'')+'"></i>':'')+esc(r.rider.replace(' (return)',''))+'</b><span>'+esc(sub)+'</span></div><div class="track">'+rowSegments(r,st,c)+'</div></div>';
+ }).join('');
+ var lines='';for(var hh=5;hh<=17;hh++){lines+='<div class="hline" style="left:'+pct(hh*60)+'%"></div>';}
+ var nowL='<div style="position:absolute;left:230px;right:0;top:0;bottom:0;pointer-events:none">'+lines+'<div class="nowLine" style="left:'+pct(S.clock)+'%"><span>'+fmt(S.clock)+'</span></div></div>';
+ return '<div class="card"><div class="hd"><div><h2>The day at a glance</h2><p>Each bar runs from pickup to appointment. Red means a rider is at risk. Click a row for the detail.</p></div><label class="row" style="font-size:13px"><input type="checkbox" id="onlyProblems"'+(ui.problemsOnly?' checked':'')+'> Show only rides with a problem</label></div>'+
+ '<div class="boardScroll"><div class="board"><div class="bRow head"><div class="lab"><span>Rider</span></div><div class="track">'+ticks+'</div></div>'+(rows||'<div class="empty"><b>No rides with a problem right now.</b>Move the clock to see what the day brings.</div>')+nowL+'</div></div>'+
+ (pendingRet?'<div class="legend" style="border-top:1px solid var(--line);border-bottom:0"><span>'+pendingRet+' return trip'+(pendingRet===1?'':'s')+' will appear here once the facility sends patient-ready (see Facility view).</span></div>':'')+'<div class="legend"><span><i style="background:var(--brand)"></i>On track</span><span><i style="background:var(--info)"></i>In transit</span><span><i style="background:#cfe3d9"></i>Done</span><span><i style="background:#f6d487"></i>Needs a driver</span><span><i style="background:var(--late)"></i>Problem</span><span><i style="background:#f1a1ac"></i>Waiting</span></div></div>';
+}
+
+/* ---- cards ---- */
+function whenTag(c,r,st){
+ if(c.cleared&&!c.resolved)return 'Fixed '+fmt(c.clearedAt);
+ if(r.leg==='out'){var d=r.appt-S.clock;return d>0?'Appointment in '+dur(d):'Appointment time has passed';}
+ return st.ready!=null?'Waiting '+dur(S.clock-st.ready)+' for the ride home':'';
+}
+function quickButtons(c,r,st,rec){
+ var k=c.key,dis=canAct(c)?'':' disabled';
+ if(rec.kind==='assign')return '<div class="row"><button class="btn primary" data-act="q" data-q="assign" data-k="'+esc(k)+'" data-d="'+rec.d.id+'"'+dis+'>'+esc(rec.btn||rec.label)+'</button></div>';
+ if(rec.kind==='callDriver')return '<div class="row"><span class="note">Call result:</span><button class="btn sm" data-act="q" data-q="dOn" data-k="'+esc(k)+'"'+dis+'>On the way, on time</button><button class="btn sm" data-act="q" data-q="dLate" data-k="'+esc(k)+'"'+dis+'>On the way, 25 min late</button><button class="btn sm" data-act="q" data-q="dNone" data-k="'+esc(k)+'"'+dis+'>No answer</button></div>';
+ if(rec.kind==='callRider')return '<div class="row"><span class="note">Call result:</span><button class="btn sm" data-act="q" data-q="rYes" data-k="'+esc(k)+'"'+dis+'>'+(c.rule==='R7'?'Rider is coming out':'Rider confirmed')+'</button><button class="btn sm" data-act="q" data-q="rNone" data-k="'+esc(k)+'"'+dis+'>No answer</button></div>';
+ if(rec.kind==='fields')return '<div class="row"><button class="btn primary" data-act="q" data-q="fields" data-k="'+esc(k)+'"'+dis+'>Return plan confirmed with the booker</button></div>';
+ return '';
+}
+function caseCard(c){
+ var r=RIDE[c.rideId],st=stOf(r),fixed=c.cleared&&!c.resolved;
+ var rec=recommend(S,c,r,st,S.clock);
+ var cls='case '+(fixed?'fixed':c.severity);
+ var body;
+ if(fixed){
+  var sug=suggestOutcome(S,c);
+  body='<div class="rec"><div class="rl">Fixed. Close it with an outcome so the facility report is accurate.</div><div class="row"><button class="btn primary" data-act="q" data-q="close" data-k="'+esc(c.key)+'"'+(canAct(c)?'':' disabled')+'>Close as: '+esc(sug)+'</button><button class="btn" data-act="open" data-k="'+esc(c.key)+'">Choose another outcome</button></div></div>';
+ }else{
+  body='<div class="rec"><div class="rl">'+esc(rec.kind==='none'?'What to do':'Recommended next step')+'</div>'+(rec.kind==='none'?'<div>'+esc(rec.label)+'</div>':'<div>'+esc(rec.label)+'</div>'+quickButtons(c,r,st,rec))+'</div>';
+ }
+ var lockNote=(!canAct(c)&&!c.resolved)?'<div class="lock">'+(ui.role==='Facility coordinator'?'The facility role can watch but not act.':'This case is now with the Ops manager.')+' <button class="btn sm" data-act="role" data-role="Ops manager" style="margin-left:6px">Switch to Ops manager</button></div>':'';
+ return '<div class="'+cls+'"><div class="caseTop"><div><div class="who">'+esc(r.rider.replace(' (return)',''))+(r.leg==='ret'?' <span class="chip gray">return trip</span>':'')+'</div><div class="meta">'+esc(r.fac)+' · '+esc(r.type)+(r.leg==='out'?' · pickup '+fmt(r.pickup)+' · appointment '+fmt(r.appt):'')+' · '+esc(r.mob)+'</div></div><span class="when">'+esc(whenTag(c,r,st))+'</span></div>'+
+ '<div class="what"><b>'+esc(RULES[c.rule].name)+'</b>'+esc(c.detail||'')+'</div>'+
+ '<div class="stake">'+esc(STAKE[r.type]||'')+'</div>'+body+lockNote+
+ '<div class="foot"><span>'+ownerLine(c)+'</span><button class="btn sm" data-act="open" data-k="'+esc(c.key)+'">Open case</button></div></div>';
+}
+function liveView(){
+ var live=liveCases().map(function(c){var r=RIDE[c.rideId];c._p=priority(c,r,stOf(r),S.clock);return c;}).sort(function(a,b){return b._p-a._p;});
+ var fixed=clearedCases();
+ var intro=(!S.introOff&&S.clock===DAY_START)?'<div class="intro"><p><b>It is 05:00 and the first pickup is at 06:00.</b> Two rides already have a problem: a dialysis rider who needs a wheelchair van has been given a sedan, and a booking has no return plan. Fix them from the cards below, then press <b>Next problem</b> to move through the day. Anything nobody picks up escalates to the Ops manager.</p><button class="btn" data-act="introOff">Got it</button></div>':'';
+ var res=allCases().filter(function(c){return c.resolved;}).length;
+ var escN=live.filter(function(c){return c.escalated;}).length;
+ var escBar=(escN&&ui.role==='Dispatcher')?'<div class="lock" style="margin-bottom:14px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span><b>'+escN+' problem'+(escN===1?' was':'s were')+' not picked up in time and went to the Ops manager.</b> That is the escalation working. Switch to the Ops manager view to act on them.</span><button class="btn sm" data-act="role" data-role="Ops manager">Switch to Ops manager</button></div>':'';
+ return intro+escBar+'<div class="kpis">'+kpisHTML()+'</div>'+boardHTML()+
+ '<div class="sectionTitle"><h2>Needs a human now</h2><span>'+live.length+' open · most urgent first</span></div>'+
+ (live.length?'<div class="cases">'+live.map(caseCard).join('')+'</div>':'<div class="card"><div class="empty"><b>Nothing needs you right now.</b>Press Next problem to move the clock to the next thing that goes wrong.</div></div>')+
+ (fixed.length?'<div class="sectionTitle"><h2>Fixed, ready to close</h2><span>'+fixed.length+' waiting for an outcome</span></div><div class="cases">'+fixed.map(caseCard).join('')+'</div>':'')+
+ (res?'<div class="sectionTitle"><h2>Closed today</h2><span>'+res+' resolved. Details are under History.</span></div>':'');
+}
+
+/* ---- facility view + report ---- */
+function reportData(fac){
+ var rides=RIDES.filter(function(r){return r.fac===fac;});
+ var cs=allCases().filter(function(c){return RIDE[c.rideId].fac===fac;});
+ var done=0,transit=0,upcoming=0,out_=0,ret_=0;
+ rides.forEach(function(r){var st=stOf(r);if(r.leg==='out')out_++;else ret_++;if(st.dropoff!=null)done++;else if(st.pickup!=null)transit++;else upcoming++;});
+ var waits=[];cs.forEach(function(c){var m=firstActionMin(S,c);if(m!=null)waits.push(m);});
+ var live=cs.filter(function(c){return !c.resolved&&!c.cleared;}),fixed=cs.filter(function(c){return c.cleared||c.resolved;});
+ return {rides:rides,cs:cs,done:done,transit:transit,upcoming:upcoming,out:out_,ret:ret_,live:live,fixed:fixed,med:median(waits)};
+}
+function caseLine(c){
+ var r=RIDE[c.rideId];var who=r.rider.replace(' (return)',' (return trip)');
+ var acts=S.audit.filter(function(a){return a.caseId===c.id&&a.actor!=='System rule'&&a.text!=='Took ownership.'&&a.text.indexOf('Closed:')!==0&&a.t<=S.clock;}).sort(function(a,b){return a.t-b.t||a.n-b.n;});
+ var s=fmt(c.createdAt)+' · '+who+' ('+r.type.toLowerCase()+'): '+RULES[c.rule].name+'. ';
+ if(c.resolved)s+='Closed '+fmt(c.resolved.t)+' as "'+c.resolved.outcome+'".';
+ else if(c.cleared)s+='Fixed; being closed out.';
+ else if(c.ack)s+='In progress with '+c.owner+'.';
+ else s+='Not yet picked up.';
+ if(acts.length)s+=' Actions: '+acts.slice(0,3).map(function(a){return fmt(a.t)+' '+a.text.replace(/\.$/,'');}).join('; ')+'.';
+ if(c.facNotified)s+=' Facility told at '+fmt(c.facNotified)+'.';
+ return s;
+}
+function reportText(fac){
+ var d=reportData(fac);
+ var t='Arrival report for '+fac+'\nAs of '+fmt(S.clock)+' (demo data)\n\n';
+ t+=d.rides.length+' trips scheduled ('+d.out+' outbound, '+d.ret+' return). '+d.done+' complete, '+d.transit+' in transit, '+d.upcoming+' still to come.\n';
+ t+='Problems found: '+d.cs.length+'. Fixed or closed: '+d.fixed.length+'. Still open: '+d.live.length+'.\n';
+ t+='Typical time from problem to first action: '+(d.med==null?'not yet measured':dur(d.med))+'.\n\n';
+ t+=d.cs.length?'What happened:\n'+d.cs.map(function(c){return '- '+caseLine(c);}).join('\n'):'No problems found so far.';
+ return t;
+}
+function facilityView(){
+ var opts=FACILITIES.map(function(f){return '<option'+(f===ui.fac?' selected':'')+'>'+esc(f)+'</option>';}).join('');
+ var d=reportData(ui.fac);
+ var rows=d.rides.map(function(r){
+  var st=stOf(r),c=caseOfRide(r.id),s=rideStatus(r,st,c);
+  var acts=S.audit.filter(function(a){return a.rideId===r.id&&a.actor!=='System rule'&&a.text!=='Took ownership.'&&a.text.indexOf('Closed:')!==0&&a.t<=S.clock;}).sort(function(a,b){return b.t-a.t||b.n-a.n;}).slice(0,2).map(function(a){return '<span class="sub">'+fmt(a.t)+' · '+esc(a.text)+'</span>';}).join('');
+  var nextTxt=st.dropoff!=null?(r.leg==='out'?'Arrived '+fmt(st.dropoff):'Home '+fmt(st.dropoff)):st.pickup!=null?'Picked up '+fmt(st.pickup):r.leg==='out'?(st.etaPickup?'ETA to pickup '+fmt(st.etaPickup):'Pickup '+fmt(r.pickup)):(st.ready!=null?'Ready '+fmt(st.ready):'Not yet ready');
+  var btn=(r.leg==='ret'&&st.ready==null)?'<button class="btn sm" data-act="facReady" data-ride="'+esc(r.id)+'">Patient is ready</button>':'';
+  return '<tr><td><b>'+esc(r.rider)+'</b><span class="sub">'+esc(r.type)+(r.leg==='ret'?' · return':'')+'</span></td><td><span class="chip '+s.c+'">'+s.k+'</span></td><td>'+(st.driver?esc(DRV[st.driver].name)+'<span class="sub">'+VEHLABEL[DRV[st.driver].veh]+'</span>':'<span class="sub">Not yet assigned</span>')+'</td><td>'+esc(nextTxt)+'</td><td>'+(acts||'<span class="sub">Nothing needed</span>')+'</td><td>'+btn+'</td></tr>';}).join('');
+ var lines=d.cs.length?'<ul>'+d.cs.map(function(c){return '<li>'+esc(caseLine(c))+'</li>';}).join('')+'</ul>':'<p class="note">No problems found so far.</p>';
+ return '<div class="card"><div class="hd"><div><h2>What a facility sees</h2><p>Live status and what the operator is doing, without calling the dispatcher to ask.</p></div><select class="select" id="facSel" aria-label="Choose facility">'+opts+'</select></div>'+
+ '<div class="tableWrap"><table class="t"><thead><tr><th>Rider</th><th>Status</th><th>Driver</th><th>Next</th><th>What the operator is doing</th><th>Facility action</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
+ '<div class="card"><div class="hd"><div><h2>Arrival report</h2><p>A plain summary a facility manager can read in 30 seconds. It builds itself from what happened.</p></div><div class="row"><button class="btn" data-act="copyReport">Copy as text</button><button class="btn" data-act="print">Print or save as PDF</button></div></div>'+
+ '<div class="sheet"><h3>Arrival report for '+esc(ui.fac)+'</h3><div class="sub">As of '+fmt(S.clock)+' · demo data</div>'+
+ '<div class="stats"><div><b class="num">'+d.rides.length+'</b><span>trips scheduled</span></div><div><b class="num">'+d.done+'</b><span>complete</span></div><div><b class="num">'+d.cs.length+'</b><span>problems found</span></div><div><b class="num">'+(d.med==null?'—':dur(d.med))+'</b><span>typical time to first action</span></div></div>'+
+ '<strong>What happened</strong>'+lines+'</div></div>';
+}
+function ridesView(){
+ var rows=RIDES.map(function(r){
+  var st=stOf(r),c=caseOfRide(r.id),s=rideStatus(r,st,c),next='Done';
+  var ob=obligations(r,st,S.T).filter(function(o){return !o.ok;})[0];
+  if(ob)next=ob.l+(ob.due!=null?' · due '+fmt(ob.due):'');
+  return '<tr><td><b>'+(r.leg==='out'?fmt(r.pickup):'Will-call')+'</b><span class="sub">'+(r.leg==='out'?'Appointment '+fmt(r.appt):'Return trip')+'</span></td><td><b>'+esc(r.rider)+'</b><span class="sub">'+esc(r.id)+'</span></td><td>'+esc(r.fac)+'<span class="sub">'+esc(r.type)+'</span></td><td>'+esc(r.mob)+'</td><td>'+(st.driver?esc(DRV[st.driver].name)+'<span class="sub">'+VEHLABEL[DRV[st.driver].veh]+'</span>':'<span class="sub">None</span>')+'</td><td><span class="chip '+s.c+'">'+s.k+'</span></td><td>'+esc(next)+'</td></tr>';}).join('');
+ return '<div class="card"><div class="hd"><div><h2>All rides</h2><p>Every ride with its next deadline, at '+fmt(S.clock)+'.</p></div></div><div class="tableWrap"><table class="t"><thead><tr><th>Pickup</th><th>Rider</th><th>Facility</th><th>Mobility</th><th>Driver</th><th>Status</th><th>Next deadline</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+function rulesView(){
+ var T=S.T;
+ function f(k,l,step){return '<label>'+l+'<input class="input" type="number" min="0" step="'+(step||1)+'" data-t="'+k+'" value="'+T[k]+'"></label>';}
+ var rows=Object.keys(RULES).map(function(k){var r=RULES[k];return '<tr><td><b>'+esc(r.name)+'</b><span class="sub">'+esc(r.when)+'</span></td><td>'+esc(r.owner)+'</td><td>'+esc(r.esc)+'</td><td>'+r.fac+'</td></tr>';}).join('');
+ return '<div class="card"><div class="hd"><div><h2>Thresholds</h2><p>Placeholders. The operator sets these from its own service standards. Change one and the day is re-checked.</p></div><button class="btn" data-act="resetT">Restore defaults</button></div><div class="fields">'+
+ f('acceptH','A driver must hold the ride this many hours before pickup',0.5)+f('confirmH','Rider confirmed this many hours before pickup',0.5)+f('enrouteMin','Driver shows en route this many min before pickup')+
+ f('graceMin','Pickup counts as overdue after (min)')+f('tolMin','Late-arrival tolerance (min)')+f('returnMin','Return ride must start within (min of patient-ready)')+
+ f('slaCritical','Someone must pick up a critical problem within (min)')+f('slaHigh','…a high problem within (min)')+f('slaMedium','…a medium problem within (min)')+'</div></div>'+
+ '<div class="card"><div class="hd"><div><h2>The eight checks</h2><p>Plain rules, same input, same answer. That is what makes every alert explainable. No AI decides any of this.</p></div></div><div class="tableWrap"><table class="t"><thead><tr><th>Problem</th><th>Starts with</th><th>If nobody acts</th><th>Affects the facility</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+function auditView(){
+ var items=S.audit.filter(function(a){return a.t<=S.clock;}).slice().sort(function(a,b){return b.t-a.t||b.n-a.n;}).slice(0,250);
+ var rows=items.map(function(a){var r=RIDE[a.rideId];return '<tr><td class="num">'+fmt(a.t)+'</td><td>'+esc(a.actor)+'</td><td>'+esc(r?r.rider:'')+'<span class="sub">'+esc(a.caseId||'')+'</span></td><td>'+esc(a.text)+'</td></tr>';}).join('');
+ return '<div class="card"><div class="hd"><div><h2>History</h2><p>'+items.length+' entries up to '+fmt(S.clock)+'. Every detection, escalation and action is recorded with its time.</p></div><button class="btn" data-act="exportAudit">Download JSON</button></div>'+
+ (items.length?'<div class="tableWrap"><table class="t"><thead><tr><th>Time</th><th>Who</th><th>Ride</th><th>What happened</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="empty"><b>Nothing yet.</b>Move the clock or act on a problem.</div>')+'</div>';
+}
+function aboutView(){
+ var rows=[
+  ['Booking','The booking guide lists the details collected: passenger, addresses, appointment time and duration, return-trip needs, mobility assistance and contacts. Patients, families, providers, case managers and facilities can all book.','With many booking sources, key fields such as mobility need or return plan can be missing or wrong.','Return plan missing; wrong vehicle for rider.'],
+  ['Driver acceptance','Drivers choose their trips and set their own schedule. Most rides are booked in-app about 24 hours ahead so drivers can accept or decline. Wheelchair rides pay more, and recruiting is open in several cities.','A ride can sit unaccepted or be declined late, and wheelchair or stretcher supply is probably tighter than sedan supply.','Nobody has this ride, with a recommended driver who fits the rider.'],
+  ['Pre-trip','The guide recommends confirming pickup details and telling the provider about changes.','Confirmation may depend on the rider or caregiver acting.','Rider has not confirmed, with a call log.'],
+  ['Day of pickup','Dispatch and tracking are standard in NEMT software. The Book a Trip link on the site points to a Gazoop-hosted customer portal. I do not know what Kerico uses for dispatch.','The dispatch system sends status and ETA events. The gap is rules for when lateness becomes a problem and who owns it.','Pickup late, running late for appointment, rider not ready. Events are simulated here.'],
+  ['Delay and return','For appointments with unpredictable end times the return may need a call when the patient is ready. If an appointment is delayed, the patient contacts the provider.','Detection depends on the patient or caregiver calling, which is risky after dialysis or a discharge.','Facility sends patient-ready; a clock starts for the ride home.'],
+  ['Facility visibility','Partner pages promise 24/7 booking, a managed driver network and reporting tools to track trends.','Reporting is probably trend-based. Live visibility with a documented recovery is a natural extension.','Facility view and a self-building arrival report.']
+ ].map(function(r){return '<tr><td><b>'+r[0]+'</b></td><td><span class="tag pub">Public</span>'+esc(r[1])+'</td><td><span class="tag hyp">Hypothesis</span>'+esc(r[2])+'</td><td><span class="tag des">This concept</span>'+esc(r[3])+'</td></tr>';}).join('');
+ return '<div class="card"><div class="hd"><div><h2>What this is</h2></div></div><div class="pad note">A rides company can lose a facility over a few bad mornings: a wheelchair rider sent a sedan, a dialysis patient who never got a ride, a discharged patient waiting hours for a ride home. Dispatch software tracks the trips. What it often does not do is decide <b>when a late trip becomes a problem, who owns it, and what the facility is told</b>. This concept sits on top of dispatch and does three things: it spots the problem early, it recommends the fix, and it produces the facility report that shows the problem was caught and handled.</div></div>'+
+ '<div class="card"><div class="pad note"><b>Independent concept based on publicly available information.</b> Built without access to Kerico systems, data or staff, and not an official Kerico product. Every rider, driver, facility and ride here is synthetic. Public facts come from kericocare.com (booking guide, drivers, customers and services pages). Hypotheses are my inference and may be wrong. Kerico marketing figures are deliberately not used. The "why it matters" lines are general framing, since facility policies differ.</div></div>'+
+ '<div class="card"><div class="hd"><div><h2>Public facts, hypotheses and what this concept adds</h2></div></div><div class="tableWrap"><table class="t" style="min-width:980px"><thead><tr><th>Step</th><th>Public</th><th>Hypothesis</th><th>Concept</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
+ '<div class="grid2"><div class="card"><div class="hd"><div><h2>Where AI fits, and where it does not</h2></div></div><div class="pad note">Plain rules decide when a problem opens, who owns it and when it escalates. In production a language model could draft the handoff summary and the facility message from the same facts, and a person would read and send every one. AI never reassigns a ride, contacts a rider or closes a case. The summaries here are written by rules, not AI.</div></div>'+
+ '<div class="card"><div class="hd"><div><h2>What I would confirm with Kerico</h2></div></div><div class="pad note">How acceptance works in practice (offered or auto-assigned). Which trip status events exist. What a facility is told today when a ride is at risk. How recurring dialysis and will-call returns are handled. What counts as late for each ride type.</div></div></div>'+
+ '<div class="note" style="text-align:center;margin-top:8px">Runs on the Continuum exception engine, a workflow engine I built for care operations.</div>';
+}
+
+function render(){
+ $('clockTxt').textContent=fmt(S.clock);
+ $('badge').textContent=liveCases().length;
+ document.querySelectorAll('#tabs button').forEach(function(b){b.classList.toggle('on',b.dataset.nav===ui.view);});
+ $('view').innerHTML=ui.view==='live'?liveView():ui.view==='facility'?facilityView():ui.view==='rides'?ridesView():ui.view==='rules'?rulesView():ui.view==='audit'?auditView():aboutView();
+ if(ui.caseKey||ui.rideKey)renderDrawer();
+}
+
+/* ================= drawer ================= */
+function summaryText(c,ride,st){
+ var acts=S.audit.filter(function(a){return a.caseId===c.id&&a.actor!=='System rule'&&a.t<=S.clock;}).sort(function(a,b){return a.t-b.t||a.n-b.n;}).map(function(a){return '- '+fmt(a.t)+' '+a.actor+': '+a.text;});
+ var left=obligations(ride,st,S.T).filter(function(o){return !o.ok;}).map(function(o){return o.l;});
+ return RULES[c.rule].name+' ('+c.severity+')\n'+ride.rider+' · '+ride.fac+' · '+ride.type+' · '+ride.mob+(ride.leg==='out'?' · pickup '+fmt(ride.pickup)+', appointment '+fmt(ride.appt):' · return trip')+'\n\nWhat happened: '+c.detail+'\nDriver: '+(st.driver?DRV[st.driver].name+' ('+VEHLABEL[DRV[st.driver].veh]+')':'none')+'\nWith: '+c.owner+(c.escalated?' (escalated: '+c.escReason+')':'')+'\n\nDone so far:\n'+(acts.length?acts.join('\n'):'- nothing yet')+'\n\nStill open: '+(left.length?left.join(', '):'nothing')+'\nFacility told: '+(c.facNotified?fmt(c.facNotified):'not yet')+'\n\nWritten by rules, not AI. A person reviews it before it is used.';
+}
+function draftFor(c,ride,st){
+ var who=ride.rider.replace(' (return)',''),base='Hello '+ride.fac+' team, ';
+ var m={
+  R1:base+'we need one more detail to finish '+who+'\'s booking and will follow up directly.',
+  R2:base+'we are still lining up a driver for '+who+' (pickup '+(ride.pickup!=null?fmt(ride.pickup):'')+'). We are on it and will confirm by '+fmt(S.clock+20)+'. If the appointment can be held or moved, please tell us.',
+  R3:base+'we are switching '+who+' to a suitable vehicle so the pickup time does not change. We will confirm shortly.',
+  R4:base+'we have not yet confirmed today\'s ride with '+who+'. We are still trying and will tell you if anything changes.',
+  R5:base+who+'\'s ride is running late for the '+(ride.pickup!=null?fmt(ride.pickup):'')+' pickup. We are acting on it and will update you by '+fmt(S.clock+15)+'. If their slot can be held, please tell us.',
+  R6:base+who+'\'s ride is running behind. We now expect arrival around '+fmt((st.etaPickup||S.clock)+ride.travel)+', after the scheduled time. Can the slot be held?',
+  R7:base+who+' was not ready at pickup. We are contacting them and will update you by '+fmt(S.clock+15)+'.',
+  R8:base+who+' is waiting for the ride home. We are sending a driver and will update you by '+fmt(S.clock+15)+'.'
+ };
+ return (m[c.rule]||base+'we are looking into '+who+'\'s ride.')+'\n\n— '+ui.role+' (draft)';
+}
+function evText(e,ride){
+ var dn=e.d&&DRV[e.d]?DRV[e.d].name:'';
+ switch(e.k){
+  case 'accept':return dn+' took the ride';case 'decline':return dn+' declined the ride';case 'confirm':return 'Rider or caregiver confirmed';
+  case 'enroute':return 'Driver on the way';case 'eta':return 'ETA to pickup '+fmt(e.v);case 'arrive':return 'Driver arrived at pickup';
+  case 'pickup':return 'Rider picked up';case 'dropoff':return ride.leg==='out'?'Rider arrived at the facility':'Rider dropped off at home';
+  case 'notready':return 'Driver says the rider is not ready';case 'rider_ready':return 'Rider is at the door';case 'ready':return 'Facility sent patient-ready';
+  case 'fields':return 'Booking details completed';case 'call':return e.o==='reached'?'Rider contacted':'Rider call, no answer';
+  case 'dcall':return 'Driver call, no answer';case 'fnotify':return 'Facility told';default:return e.k;}
+}
+function obHTML(ride,st){
+ return obligations(ride,st,S.T).map(function(o){
+  var cls=o.ok?'ok':(o.due!=null&&o.due<=S.clock?'miss':'wait');
+  var small=o.ok?(o.at!=null?fmt(o.at):''):(o.due!=null?(cls==='miss'?'overdue, due ':'due ')+fmt(o.due):'');
+  return '<div class="'+cls+'"><i>'+(o.ok?'✓':cls==='miss'?'✕':'○')+'</i><span>'+esc(o.l)+'</span><small>'+small+'</small></div>';}).join('');
+}
+function renderDrawer(){
+ var c=ui.caseKey?S.cases[ui.caseKey]:null;
+ if(ui.caseKey&&!c){closeDrawer();return;}
+ var ride=c?RIDE[c.rideId]:RIDE[ui.rideKey],st=stOf(ride);
+ var evTl=st.events.slice(-8).map(function(e){return '<div><time>'+fmt(e.t).replace('Yesterday ','Yday ')+'</time><span>'+esc(evText(e,ride))+'</span></div>';}).join('');
+ var html='';
+ if(!c){
+  var cs=allCases().filter(function(x){return x.rideId===ride.id;});
+  html='<div class="dHead"><div><h3>'+esc(ride.rider)+'</h3><p>'+esc(ride.fac)+' · '+esc(ride.type)+' · '+esc(ride.mob)+(ride.leg==='out'?' · pickup '+fmt(ride.pickup)+', appointment '+fmt(ride.appt):' · return trip')+'</p></div><button class="btn" data-act="closeDrawer">Close</button></div>'+
+  '<div class="sec"><h4>Deadlines for this ride</h4><div class="ob">'+obHTML(ride,st)+'</div></div>'+
+  (cs.length?'<div class="sec"><h4>Problems on this ride</h4>'+cs.map(function(x){return '<div class="row" style="margin-bottom:6px"><b>'+esc(RULES[x.rule].name)+'</b>'+(x.resolved?'<span class="chip green">Closed</span>':x.cleared?'<span class="chip blue">Fixed</span>':sevChip(x.severity))+'<button class="btn sm" data-act="open" data-k="'+esc(x.key)+'">Open</button></div>';}).join('')+'</div>':'<div class="sec"><div class="note">No problems on this ride.</div></div>')+
+  '<div class="sec"><h4>Latest events</h4><div class="tl">'+(evTl||'<div><span>No events yet.</span></div>')+'</div></div>';
+  $('drawer').innerHTML=html;
+ }else{
+  var rec=recommend(S,c,ride,st,S.clock),acting=canAct(c)&&!c.resolved,dis=acting?'':' disabled';
+  if(ui.draftFor!==c.key){ui.draft=draftFor(c,ride,st);ui.draftFor=c.key;}
+  var facImpact=RULES[c.rule].fac==='Yes';
+  var caseLog=S.audit.filter(function(a){return a.caseId===c.id&&a.t<=S.clock;}).sort(function(a,b){return a.t-b.t||a.n-b.n;}).map(function(a){return '<div><time>'+fmt(a.t)+'</time><span><span class="by">'+esc(a.actor)+'</span> '+esc(a.text)+'</span></div>';}).join('');
+  var evid=(c.evid||[]).map(function(e){return '<div class="'+(e.ok?'ok':'miss')+'"><i>'+(e.ok?'✓':'✕')+'</i><span>'+esc(e.l)+'</span></div>';}).join('');
+  var sugO=c.resolved?'':suggestOutcome(S,c),sugR=suggestReason(c);
+  var roleNote=(!acting&&!c.resolved)?'<div class="lock">'+(ui.role==='Facility coordinator'?'The facility role can watch but not act.':'This case is now with the Ops manager.')+' <button class="btn sm" data-act="role" data-role="Ops manager" style="margin-left:6px">Switch to Ops manager</button></div>':'';
+  var resolvedBox=c.resolved?'<div class="sec"><h4>How it ended</h4><div class="note"><b>'+esc(c.resolved.outcome)+'</b> · '+esc(c.resolved.reason)+(c.resolved.note?'<br>'+esc(c.resolved.note):'')+'<br>Closed by '+esc(c.resolved.by)+' at '+fmt(c.resolved.t)+'.</div></div>':'';
+  var elig=DRIVERS.map(function(d){var reason='';if(RANK[d.veh]<RANK[ride.mob])reason='wrong vehicle';else{var b=driverBusy(S,S.clock,ride,d.id);if(b)reason='busy with '+b;}if(st.driver===d.id&&!reason)reason='current driver';return {d:d,reason:reason};});
+  var free=elig.filter(function(x){return !x.reason;});
+  var showAssign=['R2','R3','R5','R6','R8'].indexOf(c.rule)>-1;
+  var asgSel=showAssign?'<div class="box"><label>Choose a different driver</label><div class="row"><select class="select" id="asg" aria-label="Driver">'+elig.map(function(x){return '<option value="'+x.d.id+'"'+(x.reason?' disabled':'')+(rec.kind==='assign'&&rec.d.id===x.d.id?' selected':'')+'>'+esc(x.d.name+' · '+VEHLABEL[x.d.veh]+(x.reason?' ('+x.reason+')':''))+'</option>';}).join('')+'</select><button class="btn" data-act="assignSel" data-k="'+esc(c.key)+'"'+(acting&&free.length?'':' disabled')+'>Assign</button></div></div>':'';
+  html='<div class="dHead"><div><h3>'+esc(RULES[c.rule].name)+'</h3><p>'+esc(ride.rider)+' · '+esc(ride.fac)+' · '+esc(ride.type)+'</p><div class="row" style="margin-top:8px">'+(c.resolved?'<span class="chip green">Closed</span>':c.cleared?'<span class="chip blue">Fixed</span>':sevChip(c.severity))+(c.escalated?'<span class="chip red">Escalated</span>':'')+'<span class="chip gray">'+esc(c.owner)+'</span></div></div><button class="btn" data-act="closeDrawer">Close</button></div>'+
+  '<div class="sec"><h4>What happened</h4><div class="note" style="margin-bottom:8px;color:var(--ink)">'+esc(c.detail)+'</div><div class="ob">'+evid+'</div><div class="stake" style="margin-top:10px">'+esc(STAKE[ride.type]||'')+'</div><div class="note" style="margin-top:8px">Opened '+fmt(c.createdAt)+'. '+ownerLine(c).replace(/&amp;/g,'&')+'</div></div>'+
+  resolvedBox+
+  (c.resolved?'':'<div class="sec"><h4>Fix it</h4>'+roleNote+'<div class="box"><label>'+(rec.kind==='none'?'What to do':'Recommended')+'</label><div>'+esc(rec.label)+'</div>'+(rec.kind==='none'?'':quickButtons(c,ride,st,rec))+'</div>'+asgSel+'</div>')+
+  (c.resolved||!facImpact?'':'<div class="sec"><h4>Tell the facility</h4><div class="box"><label>Draft (a person reads it and sends it)</label><textarea class="textarea" id="draft" aria-label="Message to facility"'+dis+'>'+esc(ui.draft)+'</textarea><div class="row"><button class="btn" data-act="notify" data-k="'+esc(c.key)+'"'+((c.facNotified||!acting)?' disabled':'')+'>'+(c.facNotified?'Sent '+fmt(c.facNotified):'Send (demo, nothing leaves this page)')+'</button></div></div></div>')+
+  (c.resolved?'':'<div class="sec"><h4>Close it</h4><div class="box"><label>Outcome and reason (suggested from what happened)</label><div class="row"><select class="select" id="oc" aria-label="Outcome"><option value="">Outcome…</option>'+OUTCOMES.map(function(o){return '<option'+(o===sugO?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select><select class="select" id="rs" aria-label="Reason"><option value="">Reason…</option>'+REASONS.map(function(o){return '<option'+(o===sugR?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></div><input class="input" id="nt" placeholder="Note (optional)" aria-label="Note"><div class="row"><button class="btn primary" data-act="resolve" data-k="'+esc(c.key)+'"'+dis+'>Close case</button></div><div class="note">Closing needs an outcome and a reason. Outcomes that hurt the appointment also need the facility told first.</div></div></div>')+
+  '<div class="sec"><h4>Ride deadlines</h4><div class="ob">'+obHTML(ride,st)+'</div></div>'+
+  '<div class="sec"><h4>Handoff summary</h4><div class="summary" id="sumTxt">'+esc(summaryText(c,ride,st))+'</div><div class="row" style="margin-top:8px"><button class="btn sm" data-act="copySummary">Copy summary</button></div></div>'+
+  '<div class="sec"><h4>Case history</h4><div class="tl">'+(caseLog||'<div><span>No entries yet.</span></div>')+'</div></div>'+
+  '<div class="sec"><h4>Latest ride events</h4><div class="tl">'+(evTl||'<div><span>No events yet.</span></div>')+'</div></div>';
+  $('drawer').innerHTML=html;
+ }
+ $('drawer').classList.add('open');$('drawer').setAttribute('aria-hidden','false');$('overlay').classList.add('show');
+}
+function closeDrawer(){ui.caseKey=null;ui.rideKey=null;ui.draftFor=null;$('drawer').classList.remove('open');$('drawer').setAttribute('aria-hidden','true');$('overlay').classList.remove('show');}
+
+/* ================= actions ================= */
+function afterAction(){evaluate(S,S.clock);save();render();}
+function takeOwnership(c){if(c.ack)return;c.ack=S.clock;c.ackBy=ui.role;if(ui.role==='Ops manager')c.owner='Ops manager';log(S,S.clock,ui.role,c,'Took ownership.');}
+function guard(c){
+ if(c.resolved){toast('This case is already closed.',true);return false;}
+ if(ui.role==='Facility coordinator'){toast('The facility role can watch but not act.',true);return false;}
+ if(!canAct(c)){toast('This case is with the Ops manager. Switch role to act on it.',true);return false;}
+ return true;
+}
+function doAssign(c,d){
+ var ride=RIDE[c.rideId],now=S.clock;if(!guard(c))return;
+ if(!d){toast('Choose a driver.',true);return;}
+ takeOwnership(c);addHuman(S,ride.id,assignEvents(ride,d,now,S.T),now);
+ log(S,now,ui.role,c,'Sent '+DRV[d].name+' ('+VEHLABEL[DRV[d].veh]+').');afterAction();toast(DRV[d].name+' is on it. Move the clock to watch the ride play out.');
+}
+function doDriverCall(c,o){
+ var ride=RIDE[c.rideId],now=S.clock;if(!guard(c))return;takeOwnership(c);
+ if(o==='dNone'){addHuman(S,ride.id,[E(now,'dcall',{o:'none',human:1})],null);log(S,now,ui.role,c,'Called the driver, no answer.');}
+ else{var v=o==='dOn'?Math.max(now+8,ride.pickup):now+25;addHuman(S,ride.id,[E(now,'enroute',{human:1}),E(now,'eta',{v:v}),E(v+1,'pickup'),E(v+1+ride.travel,'dropoff')],now);log(S,now,ui.role,c,'Driver confirmed on the way'+(o==='dLate'?', about 25 minutes late':', on time')+'. New ETA '+fmt(v)+'.');}
+ afterAction();
+}
+function doRiderCall(c,o){
+ var ride=RIDE[c.rideId],now=S.clock;if(!guard(c))return;takeOwnership(c);
+ if(o==='rNone'){addHuman(S,ride.id,[E(now,'call',{o:'none',human:1})],null);log(S,now,ui.role,c,'Called the rider or caregiver, no answer.');}
+ else if(c.rule==='R7'){addHuman(S,ride.id,[E(now,'call',{o:'reached',human:1}),E(now+3,'rider_ready'),E(now+8,'pickup'),E(now+8+ride.travel,'dropoff')],now);log(S,now,ui.role,c,'Reached the rider. They are coming out and the driver will load them.');}
+ else{addHuman(S,ride.id,[E(now,'call',{o:'reached',human:1})],null);log(S,now,ui.role,c,'Reached the rider or caregiver. Ride confirmed.');}
+ afterAction();
+}
+function doFields(c){var ride=RIDE[c.rideId];if(!guard(c))return;takeOwnership(c);addHuman(S,ride.id,[E(S.clock,'fields',{human:1})],null);log(S,S.clock,ui.role,c,'Confirmed the return plan with the booker.');afterAction();}
+function doNotify(c){
+ var ride=RIDE[c.rideId],now=S.clock;if(!guard(c))return;
+ var ta=$('draft'),msg=ta?ta.value.trim():'';if(!msg){toast('The message is empty.',true);return;}
+ takeOwnership(c);addHuman(S,ride.id,[E(now,'fnotify',{human:1})],null);c.facNotified=now;
+ log(S,now,ui.role,c,'Told '+ride.fac+' (demo, not actually sent).');afterAction();toast('Logged as sent to '+ride.fac+'. Nothing leaves this demo.');
+}
+function doResolve(c,oc,rs,nt){
+ var now=S.clock;if(!guard(c))return;
+ if(!oc||!rs){toast('Choose an outcome and a reason.',true);return;}
+ if(NEEDS_FAC.indexOf(oc)>-1&&!c.facNotified){toast('Tell the facility first. This outcome affected their appointment.',true);return;}
+ if(!c.cleared&&NEEDS_CLEARED.indexOf(oc)>-1){toast('The problem is still active. Fix it first, or choose Rider no-show, Cancelled or Missed ride.',true);return;}
+ takeOwnership(c);c.resolved={t:now,outcome:oc,reason:rs,note:nt||'',by:ui.role};
+ log(S,now,ui.role,c,'Closed: '+oc+' ('+rs+')'+(nt?'. '+nt:'.'));afterAction();toast('Closed as '+oc+'.');
+}
+function act(name,el){
+ var k=el.dataset.k,c=k?S.cases[k]:null;
+ switch(name){
+  case 'closeDrawer':closeDrawer();return;
+  case 'open':ui.caseKey=k;ui.rideKey=null;ui.draftFor=null;renderDrawer();return;
+  case 'role':ui.role=el.dataset.role;$('role').value=ui.role;render();return;
+  case 'introOff':S.introOff=1;save();render();return;
+  case 'q':{var q=el.dataset.q;if(!c)return;
+   if(q==='assign')doAssign(c,el.dataset.d);
+   else if(q==='dOn'||q==='dLate'||q==='dNone')doDriverCall(c,q);
+   else if(q==='rYes'||q==='rNone')doRiderCall(c,q);
+   else if(q==='fields')doFields(c);
+   else if(q==='close')doResolve(c,suggestOutcome(S,c),suggestReason(c),'');
+   return;}
+  case 'assignSel':if(c)doAssign(c,$('asg').value);return;
+  case 'notify':if(c)doNotify(c);return;
+  case 'resolve':if(c)doResolve(c,$('oc').value,$('rs').value,($('nt').value||'').trim());return;
+  case 'resetT':S.T=JSON.parse(JSON.stringify(DEFAULT_T));afterAction();toast('Thresholds restored.');return;
+  case 'facReady':{var r=RIDE[el.dataset.ride];addHuman(S,r.id,[E(S.clock,'ready',{human:1})],S.clock);log(S,S.clock,'Facility coordinator',null,'Sent patient-ready for '+r.rider+'.',r.id);afterAction();toast('Patient-ready sent for '+r.rider+'.');return;}
+  case 'copySummary':{var txt=$('sumTxt').textContent;copyText(txt);return;}
+  case 'copyReport':copyText(reportText(ui.fac));return;
+  case 'print':window.print();return;
+  case 'exportAudit':{var blob=new Blob([JSON.stringify(S.audit.filter(function(a){return a.t<=S.clock;}),null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='arrival-desk-history.json';document.body.appendChild(a);a.click();a.remove();return;}
+ }
+}
+function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast('Copied.');},function(){toast('Copy failed. Select the text and copy it.',true);});}else toast('Copy is not available here. Select the text and copy it.',true);}
+
+/* ================= wiring ================= */
+document.addEventListener('click',function(ev){
+ var n=ev.target.closest('[data-nav]');if(n){ui.view=n.dataset.nav;closeDrawer();render();return;}
+ var a=ev.target.closest('[data-act]');if(a){act(a.dataset.act,a);return;}
+ var r=ev.target.closest('[data-ride]');if(r&&!ev.target.closest('button')){var rid=r.dataset.ride,cs=caseOfRide(rid);if(cs){ui.caseKey=cs.key;ui.rideKey=null;}else{ui.rideKey=rid;ui.caseKey=null;}ui.draftFor=null;renderDrawer();return;}
+ if(ev.target.id==='overlay')closeDrawer();
+});
+document.addEventListener('keydown',function(ev){
+ if(ev.key==='Escape'&&(ui.caseKey||ui.rideKey))closeDrawer();
+ if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches&&ev.target.matches('.bRow[data-ride]')){ev.preventDefault();ev.target.click();}
+});
+document.addEventListener('input',function(ev){if(ev.target.id==='draft')ui.draft=ev.target.value;});
+document.addEventListener('change',function(ev){
+ var t=ev.target;
+ if(t.id==='facSel'){ui.fac=t.value;render();}
+ else if(t.id==='onlyProblems'){ui.problemsOnly=t.checked;render();}
+ else if(t.dataset&&t.dataset.t){var v=parseFloat(t.value);if(isNaN(v)||v<0){toast('Enter a number of zero or more.',true);render();return;}S.T[t.dataset.t]=v;evaluate(S,S.clock);save();render();toast('Updated. The day was re-checked.');}
+});
+$('role').addEventListener('change',function(){ui.role=this.value;render();});
+$('reset').addEventListener('click',function(){S=freshState();evaluate(S,DAY_START);ui.caseKey=null;ui.rideKey=null;save();closeDrawer();render();toast('Day reset to 05:00.');});
+function step(mins,stop){if(S.clock>=DAY_END){toast('End of the demo day. Press Reset day to start again.');return;}var found=advance(S,Math.min(S.clock+mins,DAY_END),stop);save();render();return found;}
+$('btn30').addEventListener('click',function(){step(30,false);});
+$('btn120').addEventListener('click',function(){step(120,false);});
+$('btnNext').addEventListener('click',function(){
+ if(S.clock>=DAY_END){toast('End of the demo day. Press Reset day to start again.');return;}
+ var found=advance(S,DAY_END,true);save();render();
+ toast(found?'Moved to '+fmt(S.clock)+'. A new problem opened.':'No further problems today.');
+});
+render();
+window.__ride={S:function(){return S;},advance:advance,evaluate:evaluate};
+})();
+</script>
+</body>
+</html>
